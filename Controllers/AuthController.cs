@@ -25,7 +25,7 @@ public class AuthController : ControllerBase
             return BadRequest("이미 존재하는 아이디입니다.");
         }
 
-        // 2. DB에 저장
+        // 2. DB 저장
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 

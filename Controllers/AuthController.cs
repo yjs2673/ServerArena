@@ -34,9 +34,9 @@ public class AuthController : ControllerBase
 
     // 로그인: POST /api/auth/login
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto loginInfo) // User -> LoginDto
+    public async Task<IActionResult> Login([FromBody] LoginDto loginInfo)
     {
-        // 아이디가 확인
+        // 아이디 확인
         var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == loginInfo.LoginId);
 
         if (user == null)
@@ -56,6 +56,7 @@ public class AuthController : ControllerBase
             userId = user.Id,
             nickname = user.Nickname,
             level = user.Level,
+            exp = user.Exp,
             gold = user.Gold
         });
     }
@@ -64,9 +65,9 @@ public class AuthController : ControllerBase
     [HttpPost("update-gold")]
     public async Task<IActionResult> UpdateGold([FromBody] GoldUpdateDto updateInfo)
     {
-        // 유저 ID로 DB에서 유저 찾기
+        // 유저 찾기
         var user = await _context.Users.FindAsync(updateInfo.Id);
-    
+
         if (user == null)
         {
             return BadRequest("존재하지 않는 유저입니다.");
@@ -78,9 +79,36 @@ public class AuthController : ControllerBase
         // 변경사항 저장
         await _context.SaveChangesAsync();
 
+        return Ok(new
+        {
+            message = "골드 업데이트 성공",
+            currentGold = user.Gold
+        });
+    }
+
+    // 경험치 업데이트: POST /api/auth/add-exp
+    [HttpPost("add-exp")]
+    public async Task<IActionResult> AddExp([FromBody] LevelUpdateDto info)
+    {
+        var user = await _context.Users.FindAsync(info.Id);
+        if (user == null) return BadRequest("유저 없음");
+
+        // 경험치 추가
+        user.Exp += info.AddedExp;
+
+        // 경험치 100마다 레벨업
+        while (user.Exp >= 100)
+        {
+            user.Exp -= 100;
+            user.Level += 1;
+        }
+
+        await _context.SaveChangesAsync();
+
         return Ok(new { 
-            message = "골드 업데이트 성공", 
-            currentGold = user.Gold 
+            level = user.Level, 
+            exp = user.Exp, 
+            message = "경험치 획득 완료!" 
         });
     }
 }

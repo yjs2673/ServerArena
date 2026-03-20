@@ -26,6 +26,10 @@ public class AuthController : ControllerBase
         if (await _context.Users.AnyAsync(u => u.LoginId == user.LoginId))
             return BadRequest("이미 존재하는 아이디입니다.");
 
+        // 닉네임 중복 체크
+        if (await _context.Users.AnyAsync(u => u.Nickname == user.Nickname))
+            return BadRequest("이미 존재하는 닉네임입니다.");    
+
         // BCrypt를 이용한 비밀번호 해싱 암호화
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 

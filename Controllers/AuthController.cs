@@ -61,28 +61,23 @@ public class AuthController : ControllerBase
         });
     }
 
-    // 골드 업데이트: POST /api/auth/update-gold
-    [HttpPost("update-gold")]
-    public async Task<IActionResult> UpdateGold([FromBody] GoldUpdateDto updateInfo)
+    // 골드 업데이트: POST /api/auth/add-gold
+    [HttpPost("add-gold")]
+    public async Task<IActionResult> AddGold([FromBody] GoldUpdateDto info)
     {
-        // 유저 찾기
-        var user = await _context.Users.FindAsync(updateInfo.Id);
-
-        if (user == null)
-        {
-            return BadRequest("존재하지 않는 유저입니다.");
-        }
+        var user = await _context.Users.FindAsync(info.Id);
+        if (user == null) return BadRequest("존재하지 않는 유저입니다.");
 
         // 골드 추가
-        user.Gold += updateInfo.Gold;
+        user.Gold += info.AddedGold;
 
         // 변경사항 저장
         await _context.SaveChangesAsync();
 
         return Ok(new
         {
-            message = "골드 업데이트 성공",
-            currentGold = user.Gold
+            gold = user.Gold,
+            message = "골드 업데이트 성공"
         });
     }
 
@@ -91,7 +86,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> AddExp([FromBody] LevelUpdateDto info)
     {
         var user = await _context.Users.FindAsync(info.Id);
-        if (user == null) return BadRequest("유저 없음");
+        if (user == null) return BadRequest("존재하지 않는 유저입니다.");
 
         // 경험치 추가
         user.Exp += info.AddedExp;

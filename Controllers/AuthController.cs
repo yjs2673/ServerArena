@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using MyGameServer.Models;
 
 namespace MyGameServer.Controllers;
@@ -9,10 +10,12 @@ namespace MyGameServer.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IDatabase _redis;
 
-    public AuthController(AppDbContext context)
+    public AuthController(AppDbContext context, IConnectionMultiplexer redis)
     {
         _context = context;
+        _redis = redis.GetDatabase();
     }
 
     // 회원가입: POST /api/auth/register
@@ -95,6 +98,8 @@ public class AuthController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        // Redis Sorted Set에 업데이트
+        await _redis.SortedSetAddAsync("user_ranking", user.Id.ToString(), user.Level);
 
         return Ok(new
         {
@@ -108,17 +113,27 @@ public class AuthController : ControllerBase
     [HttpGet("ranking")]
     public async Task<IActionResult> GetRanking()
     {
-        var rankingList = await _context.Users
-            .OrderByDescending(u => u.Level)    // 레벨 내림차순
-            .ThenByDescending(u => u.Exp)       // 레벨이 같다면 경험치 높은 순
-            .Take(5)                            // 상위 5유저
-            .Select(u => new {                  // 보안을 위해 필요한 정보만 추출
-                u.Id,
-                u.Nickname,
-                u.Level,
-            })
-            .ToListAsync();
+        // Redis에서 상위 5명 가져오기 (내림차순)
+        var redisResults = await _redis.SortedSetRangeByRankWithScoresAsync("user_ranking", 0, 4, Order.Descending);
 
-        return Ok(rankingList);
+        if (redisResults.Length == 0) return Ok(new List<RankData>());
+
+        var userIds = redisResults.Select(r => int.Parse(r.Element.ToString())).ToList();
+
+        var userDict = await _context.Users
+        .Where(u => userIds.Contains(u.Id))
+        .ToDictionaryAsync(u => u.Id, u => u.Nickname);
+
+        // Redis 순서(점수 순)를 유지하며 RankData 리스트 생성
+        var rankingList = redisResults.Select((entry, index) => {
+            int id = int.Parse(entry.Element.ToString());
+            return new RankData {
+                id = id, // 유저 고유 ID
+                nickname = userDict.ContainsKey(id) ? userDict[id] : "Unknown", // DB에서 찾은 닉네임
+                level = (int)entry.Score
+            };
+        }).ToList();
+
+    return Ok(rankingList);
     }
 }

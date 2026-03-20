@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MyGameServer.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +13,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllers();
 
-var app = builder.Build();
+// Redis 연결 설정 추가
+var redis = ConnectionMultiplexer.Connect("localhost");
+builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
+var app = builder.Build();
 // app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();

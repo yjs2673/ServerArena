@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
 using MyGameServer.Models;
 
@@ -11,10 +12,12 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IDatabase _redis;
+    private readonly IDistributedCache _cache;
 
-    public AuthController(AppDbContext context, IConnectionMultiplexer redis)
+    public AuthController(AppDbContext context, IConnectionMultiplexer redis, IDistributedCache cache)
     {
         _context = context;
+        _cache = cache;
         _redis = redis.GetDatabase();
     }
 
@@ -63,14 +66,35 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginInfo)
     {
+        string cleanId = loginInfo.LoginId?.Trim() ?? "";
+
+        var allIds = await _context.Users.Select(u => u.LoginId).ToListAsync();
+    Console.WriteLine($"[Debug] DB에 존재하는 ID들: {string.Join(", ", allIds.Select(id => $"'{id}'({id.Length})"))}");
+    Console.WriteLine($"[Debug] 내가 찾는 ID: '{cleanId}'({cleanId.Length})");
+
         // 아이디 확인
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == loginInfo.LoginId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == cleanId);
 
         if (user == null) return BadRequest("아이디가 존재하지 않습니다.");
 
         // 비밀번호 확인 -> 해시값 비교
         if (!BCrypt.Net.BCrypt.Verify(loginInfo.Password, user.Password))
             return BadRequest("비밀번호가 틀렸습니다.");
+
+       // 중복 로그인 체크 -> Redis에서 로그인 상태 확인
+        string loginKey = $"login_status:{user.Id}";
+        var isOnline = await _cache.GetStringAsync(loginKey);
+
+        if (isOnline != null)
+        {
+            return BadRequest("이미 접속 중인 계정입니다.");
+        }
+
+        // 로그인 성공 시 Redis에 상태 등록 (2시간 후 자동 만료 설정)
+        await _cache.SetStringAsync(loginKey, "true", new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+        });
 
         return Ok(new
         {
@@ -81,6 +105,19 @@ public class AuthController : ControllerBase
             exp = user.Exp,
             gold = user.Gold
         });
+    }
+
+    // 로그아웃: POST /api/auth/logout
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] LogoutDto dto)
+    {
+        if (dto.UserId <= 0) return BadRequest("유효하지 않은 유저 ID입니다.");
+
+        // Redis에서 로그인 상태 삭제
+        string loginKey = $"login_status:{dto.UserId}";
+        await _cache.RemoveAsync(loginKey);
+
+        return Ok(new { message = "로그아웃 성공" });
     }
 
     // 골드 업데이트: POST /api/auth/add-gold

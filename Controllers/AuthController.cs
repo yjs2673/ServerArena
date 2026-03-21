@@ -66,8 +66,15 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginInfo)
     {
+        // 공백, 줄바꿈 방지
+        string cleanId = loginInfo.LoginId?.Trim() ?? "";
+
+        // var allIds = await _context.Users.Select(u => u.LoginId).ToListAsync();
+        // Console.WriteLine($"[Debug] DB에 존재하는 ID: {string.Join(", ", allIds.Select(id => $"'{id}'({id.Length})"))}");
+        // Console.WriteLine($"[Debug] 찾는 ID: '{cleanId}'({cleanId.Length})");
+
         // 아이디 확인
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == loginInfo.LoginId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == cleanId);
 
         if (user == null) return BadRequest("아이디가 존재하지 않습니다.");
 

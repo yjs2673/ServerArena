@@ -69,8 +69,8 @@ public class AuthController : ControllerBase
         string cleanId = loginInfo.LoginId?.Trim() ?? "";
 
         var allIds = await _context.Users.Select(u => u.LoginId).ToListAsync();
-    Console.WriteLine($"[Debug] DB에 존재하는 ID들: {string.Join(", ", allIds.Select(id => $"'{id}'({id.Length})"))}");
-    Console.WriteLine($"[Debug] 내가 찾는 ID: '{cleanId}'({cleanId.Length})");
+        Console.WriteLine($"[Debug] DB에 존재하는 ID들: {string.Join(", ", allIds.Select(id => $"'{id}'({id.Length})"))}");
+        Console.WriteLine($"[Debug] 내가 찾는 ID: '{cleanId}'({cleanId.Length})");
 
         // 아이디 확인
         var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == cleanId);

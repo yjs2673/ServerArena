@@ -17,7 +17,9 @@ public class PacketHandler
             posZ = movePacket.posZ,
             rotY = movePacket.rotY,
             isRun = movePacket.isRun,
-            isWalk = movePacket.isWalk
+            isWalk = movePacket.isWalk,
+            isJump = movePacket.isJump,
+            isDodge = movePacket.isDodge
         };
 
         // Console.WriteLine($"Broadcasting Move from Player {session.SessionId}");

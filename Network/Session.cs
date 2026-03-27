@@ -68,6 +68,13 @@ public class Session
     {
         if (Socket == null) return;
 
+        // 퇴장 패킷 생성
+        S_Leave leavePkt = new S_Leave { playerId = this.SessionId };
+        ArraySegment<byte> sendBuff = leavePkt.Write();
+
+        // 나를 제외한 모든 유저에게 leave 알림
+        GameRoom.Instance.Broadcast(sendBuff, this);
+
         Console.WriteLine($"Client Disconnected: {SessionId}");
     
         // 매니저와 룸에서 제거

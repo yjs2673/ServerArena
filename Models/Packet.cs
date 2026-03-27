@@ -2,7 +2,8 @@ public enum PacketId : ushort
 {
     C_Move = 1,
     S_Move = 2,
-    S_Login = 3
+    S_Login = 3,
+    S_Leave = 4
 }
 
 public interface IPacket
@@ -165,6 +166,30 @@ public class S_Login : IPacket
         Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
         count += 2; // Size 공간
         BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Login); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), this.playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count);
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class S_Leave : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_Leave;
+    public int playerId;
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        this.playerId = BitConverter.ToInt32(s.Slice(4));
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Leave); count += 2;
         BitConverter.TryWriteBytes(s.Slice(count), this.playerId); count += 4;
         BitConverter.TryWriteBytes(s.Slice(0), count);
         return SendBufferHelper.Close(count);

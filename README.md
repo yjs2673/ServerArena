@@ -99,7 +99,7 @@ Unity Game Server Project by .NET
 
 **3. 안정적인 소켓 관리**
 
-- **안전한 종료 (Graceful Shutdown):** 씬 이동이나 앱 종료 시 CloseSocket() 호출을 통해 서버에 퇴장 알림(S_Leave)을 명시적으로 전달
+- **안전한 종료 (Graceful Shutdown):** 씬 이동이나 앱 종료 시 `CloseSocket()` 호출을 통해 서버에 퇴장 알림(S_Leave)을 명시적으로 전달
 
 - **예외 처리:** 소켓 연결 유무를 상시 체크하여 SocketException으로 인한 클라이언트 크래시 방지
 
@@ -113,12 +113,12 @@ Unity Game Server Project by .NET
 2. **서버 (ASP.NET Core):** `Controller`가 요청을 받아 `DTO`에 저장하고 DB(MySQL)와 통신
 3. **데이터베이스 (EF Core + MySQL):** 서버가 DB에 물어보거나 값을 저장
 4. **응답:** 서버가 결과와 필요한 데이터를 JSON으로 응답 후 유니티는 이를 파싱하여 UserManager에 저장
-5. **소켓 연결:** 로비(Lobby) 또는 공원(Park) 씬 진입 시 서버의 TCP 포트로 접속 시도 및 세션 ID 할당
-6. **패킷 송수신 (Sync):** Update() 루프에서 자신의 Transform과 Animator 상태를 C_Move 패킷으로 전송
-7. **브로드캐스팅 (Broadcasting):** 서버는 수신된 패킷을 S_Move으로 나를 제외한 모든 접속자에게 전송
+5. **소켓 연결:** 로비(Lobby) 또는 공원(Park) 씬 진입 시 서버의 `TCP 포트`로 접속 시도 및 `세션 ID` 할당
+6. **패킷 송수신 (Sync):** Update() 루프에서 자신의 Transform과 Animator 상태를 `C_Move 패킷`으로 전송
+7. **브로드캐스팅 (Broadcasting):** 서버는 수신된 패킷을 `S_Move 패킷`으로 나를 제외한 모든 접속자에게 전송
 8. **원격 반영:**
   - Lobby: 유저가 메시지 전송 시 서버가 이를 수신하여 모든 접속자에게 복사 전달
   - Park: 패킷을 받은 타 클라이언트들은 해당 ID의 RemotePlayer 오브젝트를 찾아 위치와 애니메이션 갱신
 9. **연결 해제:**
   - Lobby: 로그아웃 또는 앱 종료 시 소켓을 닫고 서버 리소스를 해제하고 퇴장 알림 처리
-  - Park: 로그아웃 또는 앱 종료 시 소켓을 닫고 서버는 해당 세션을 제거한 후 다른 유저들에게 S_Leave 패킷을 전송하여 캐릭터 파괴
+  - Park: 로그아웃 또는 앱 종료 시 소켓을 닫고 서버는 해당 세션을 제거한 후 다른 유저들에게 `S_Leave 패킷`을 전송하여 캐릭터 파괴

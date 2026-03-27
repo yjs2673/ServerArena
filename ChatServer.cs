@@ -65,6 +65,15 @@ public class ChatServer
 
                     lock (_clients) { _clients[myUserId] = client; }
 
+                    // --- Redis 중복 문제 해결 ---
+                    string loginKey = $"login_status:{myUserId}";
+
+                    // 키를 새로 생성하는 게 아니라 동일한 키에 현재 소켓 연결 상태를 기록/갱신
+                    await _cache.SetStringAsync(loginKey, "Connected", new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) // 세션 유지 시간
+                    });
+
                     await Broadcast($"<color=cyan>[시스템] {myNickname}님이 입장하셨습니다.</color>");
                     continue;
                 }

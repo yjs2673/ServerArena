@@ -8,7 +8,22 @@ public class GameRoom
 
     public void Enter(Session session)
     {
-        lock (_lock) { _sessions.Add(session); }
+        lock (_lock)
+        {
+            _sessions.Add(session);
+
+            // 새로 들어온 유저(session)에게 기존에 있던 사람들의 정보를 다 보냄
+            foreach (Session other in _sessions)
+            {
+                if (other == session) continue;
+
+                S_Move spawnPkt = new S_Move();
+                spawnPkt.playerId = other.SessionId;
+                
+                // other 세션에 저장된 최신 좌표가 있다면 넣어줌 (없으면 0,0,0)
+                session.Send(spawnPkt.Write());
+            }
+        }
     }
 
     public void Leave(Session session)

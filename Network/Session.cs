@@ -5,10 +5,11 @@ using MyGameServer.Models;
 public class Session
 {
     public int SessionId { get; set; }
+    public int UserId { get; set; }
     public Socket Socket { get; set; }
     private byte[] _recvBuffer = new byte[1024 * 8];
 
-    // 클라이언트로부터 데이터가 올 때 실행됨
+    // 클라이언트로부터 데이터가 올 때 실행
     public void Start()
     {
         try
@@ -34,7 +35,6 @@ public class Session
 
             // 받은 바이트 데이터를 패킷으로 변환하도록 핸들러에 전달
             OnReceivePacket(new ArraySegment<byte>(_recvBuffer, 0, recvLen));
-
             // 다시 받을 준비
             Socket.BeginReceive(_recvBuffer, 0, _recvBuffer.Length, SocketFlags.None, OnReceive, null);
         }
@@ -51,10 +51,20 @@ public class Session
 
         switch ((PacketId)id)
         {
+            case PacketId.C_Login:
+                C_Login loginPacket = new C_Login();
+                loginPacket.Read(buffer);
+                PacketHandler.C_LoginHandler(this, loginPacket);
+                break;
             case PacketId.C_Move:
                 C_Move movePacket = new C_Move();
                 movePacket.Read(buffer);
                 PacketHandler.C_MoveHandler(this, movePacket);
+                break;
+            case PacketId.C_PickUpItem:
+                C_PickUpItem pickPkt = new C_PickUpItem();
+                pickPkt.Read(buffer);
+                PacketHandler.C_PickUpItemHandler(this, pickPkt);
                 break;
         }
     }

@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 public class AppDbContext : DbContext
 {
-    // API 서버 생성자를 사용하도록 강제 지
+    // API 서버 생성자
     [ActivatorUtilitiesConstructor]
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 

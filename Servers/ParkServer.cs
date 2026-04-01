@@ -35,7 +35,7 @@ public class ParkServer
             if (_listenSocket == null)
                 return;
 
-             // 클라이언트 소켓 완성
+            // 클라이언트 접속 수락
             Socket clientSocket = _listenSocket.EndAccept(ar);
 
             // 세션 생성 및 등록

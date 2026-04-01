@@ -24,8 +24,8 @@ public class ItemManager
     {
         while (true)
         {
-            SpawnRandomItem();
             await Task.Delay(3000); // 3초 대기
+            SpawnRandomItem();
         }
     }
 

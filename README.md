@@ -15,12 +15,13 @@ Unity Game Server Project by .NET
 | **Comunication** | **TCP Socket (Async)** | 비동기 소켓 기반 실시간 양방향 패킷 통신 |
 | **Serialization** | **Custom Packet Marshaler** | 바이트 단위 직접 직렬화를 통한 네트워크 대역폭 최적화 |
 | **Concurrency** | **Lock & ThreadLocal** | 멀티스레드 환경의 자원 공유 및 동기화 제어 |
+| **Audio Processing** | **PCM 16-bit Linear** | 실시간 음성 데이터 마샬링 및 재생 제어 |
 
 ---
 
 </br>
 
-## 🏗️ 서버 구현 방식
+## 🗃️ 서버 구현
 
 **REST(Representational State Transfer)** **API** 서버
 
@@ -89,7 +90,7 @@ Unity Game Server Project by .NET
 
 - **실시간 좌표 공유:** 유니티의 메인 스레드 정지(Freezing)를 방지하기 위해 별도 스레드에서 메시지 수신
 
-- **원격 플레이어 관리:** PlayerManager를 통해 접속 중인 타 유저를 RemotePlayer 프리팹으로 동적 생성 및 파괴
+- **원격 플레이어 관리:** `PlayerManager`를 통해 접속 중인 타 유저를 `RemotePlayer` 프리팹으로 동적 생성 및 파괴
 
 **2. 애니메이션 상태 동기화 (Animation Sync)**
 
@@ -97,9 +98,23 @@ Unity Game Server Project by .NET
 
 - **트리거 동기화 (Trigger Sync):** 점프, 구르기 등의 단발성 액션을 이전 상태값 비교 로직을 통해 타 클라이언트에서도 동일한 타이밍에 재생
 
-**3. 안정적인 소켓 관리**
+**3. 서버 주도 아이템 시스템 (Server-side Item Spawn)**
 
-- **안전한 종료 (Graceful Shutdown):** 씬 이동이나 앱 종료 시 `CloseSocket()` 호출을 통해 서버에 퇴장 알림(S_Leave)을 명시적으로 전달
+- **중앙 집중식 관리:** 서버의 `GameRoom`에서 아이템의 생성 위치와 종류를 결정하여 모든 클라이언트에게 `S_SpawnItem` 패킷 전송
+
+- **상태 동기화:** 특정 유저가 아이템을 획득(`C_PickUpItem`)하면 서버에서 유효성 검사 후, 전원에게 `S_DestroyItem`을 브로드캐스트하여 데이터 일관성 유지
+
+**4. 실시간 음성 채팅 (Voice Streaming)**
+
+- C키 입력 시 마이크 샘플을 PCM16 바이트로 변환하여 `C_Voice` 패킷 전송
+
+- 서버는 해당 세션의 DB 닉네임을 결합하여 `S_Voice`로 브로드캐스트
+
+- 수신측은 `VoiceInfoManager`를 통해 말하는 유저의 닉네임을 UI에 표시하고, AudioSource.SetData를 통해 실시간 재생
+
+**5. 안정적인 소켓 관리**
+
+- **안전한 종료 (Graceful Shutdown):** 씬 이동이나 앱 종료 시 `CloseSocket()` 호출을 통해 서버에 퇴장 알림(`S_Leave`)을 명시적으로 전달
 
 - **예외 처리:** 소켓 연결 유무를 상시 체크하여 SocketException으로 인한 클라이언트 크래시 방지
 
@@ -107,7 +122,7 @@ Unity Game Server Project by .NET
 
 </br>
 
-## 🔄 데이터 흐름 (Workflow)
+## 🔗 데이터 흐름 (Workflow)
 
 1. **클라이언트 (Unity):** 유저가 입력한 데이터를 JSON 형식으로 `UnityWebRequest`로 서버에 전송
 2. **서버 (ASP.NET Core):** `Controller`가 요청을 받아 `DTO`에 저장하고 DB(MySQL)와 통신
@@ -127,7 +142,7 @@ Unity Game Server Project by .NET
 
 </br>
 
-## 🛠️ 트러블슈팅 및 최적화 (Optimization)
+## ⚙️ 트러블슈팅 및 최적화 (Optimization)
 
 **1. Redis 세션 키 중복 생성 및 누수 해결**
 - **문제**: 씬 이동(Lobby ↔ Park) 시마다 새로운 Redis 세션이 생성되어 로그아웃 시 잔여 데이터가 남는 현상
@@ -136,3 +151,29 @@ Unity Game Server Project by .NET
 **2. 위치 동기화 시 튀는 현상(Jittering) 개선**
 - **문제**: 타 유저 혹은 자신의 캐릭터가 간헐적으로 이전 좌표로 순간이동하는 현상
 - **해결**: 서버로부터 수신된 본인 캐릭터의 위치 패킷은 무시하도록 PacketHandler 로직 수정 (Client-side Prediction)
+
+**3. TCP 패킷 단편화(Fragmentation) 대응 및 스트림 재조립(Reassembly)**
+- **문제**: 음성 데이터(약 16KB)가 TCP MTU(약 1.5KB)를 초과하면서 여러 조각으로 나뉘어 수신되는 현상
+- **해결**: 수신된 바이트를 64KB 크기의 원형 버퍼에 적재하고 특정 크기 만큼 모였을 때 핸들러로 디스패칭
+
+**4. 음성 전송 대역폭 최적화 및 중복 오디오 간섭 해결**
+- **문제**: 무압축 PCM 데이터를 실시간 전송 시 급격한 트래픽 증가로 소켓 버퍼 오버플로우 발생 및 목소리가 중복으로 출력되는 현상
+- **해결**:
+
+  **Push-to-Talk (PTT):** 특정 키(C) 입력 시에만 데이터를 수집 및 전송하도록 변경하여 대역폭 낭비 방지
+
+  **전송 임계값(Threshold) 설정:** 미세한 샘플 단위 전송 대신 0.5초(8000 samples) 단위로 묶어 보내어 패킷 오버헤드 최소화
+
+  **Focus 제어:** Application.isFocused를 체크하여 백그라운드 클라이언트의 중복 마이크 입력을 차단
+
+**5. 패킷 오염 문제 해결**
+- **문제**: 패킷 교환이 지속되면서 버퍼 오프셋 이탈에 따른 클라이언트 내에서 더미 `RemotePlayer`가 생성되는 현상
+- **해결**: C_Login 패킷 핸들러에서 유저 ID 브로드캐스트를 통해 로그인이 승인된 유저에게만 세션 Id를 발급
+
+**6. Defensive Programming을 통한 서버 가용성 확보**
+- **문제**: 용량이 0에 가까운 음성 데이터 버퍼 또는 네트워크 패킷 유실로 인해 실제 데이터보다 큰 Size 값이 수신될 경우, Array.Copy 시 참조 범위를 벗어나는 IndexOutOfRangeException 발생 및 서버 세션이 강제로 종료되는 현상
+- **해결**:
+
+  **인덱스 가드(Index Guard):** 데이터의 크기를 확인하고 오프셋과 비교하는 검증 과정을 Read 메서드에 추가
+  
+  **예외 처리:** 패킷 파싱부(OnReceivePacket)에 try-catch 블록을 배치하여 비정상 패킷 수신 시 해당 패킷을 폐기하고 세션 연결은 유지

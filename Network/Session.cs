@@ -92,66 +92,57 @@ public class Session
         if (buffer.Array == null)
             return;
 
-        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
-        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + 2);
-
-        switch ((PacketId)id) // 패킷 ID에 따른 핸들러 호출
+        try
         {
-            case PacketId.C_Login:
-                C_Login loginPacket = new C_Login();
-                loginPacket.Read(buffer);
-                PacketHandler.C_LoginHandler(this, loginPacket);
-                break;
-            case PacketId.C_Move:
-                C_Move movePacket = new C_Move();
-                movePacket.Read(buffer);
-                PacketHandler.C_MoveHandler(this, movePacket);
-                break;
-            case PacketId.C_PickUpItem:
-                C_PickUpItem pickPkt = new C_PickUpItem();
-                pickPkt.Read(buffer);
-                PacketHandler.C_PickUpItemHandler(this, pickPkt);
-                break;
-            case PacketId.C_Voice:
-                C_Voice voicePacket = new C_Voice();
-                voicePacket.Read(buffer);
+            ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+            ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + 2);
 
-                // 수신된 데이터에서 순수 음성 바이트만 추출 (헤더 4바이트 제외)
-                int voiceLen = size - 4;
-                byte[] rawVoice = new byte[voiceLen];
-                Array.Copy(buffer.Array, buffer.Offset + 4, rawVoice, 0, voiceLen);
-
-                // S_Voice 패킷으로 재조립 (누가 보냈는지 ID 포함)
-                S_Voice sVoice = new S_Voice
-                {
-                    playerId = this.UserId,
-                    voiceData = rawVoice
-                };
-                
-                Console.WriteLine("클라로부터 음성 수신");
-
-                GameRoom.Instance.Broadcast(sVoice.Write(), this);
-                break;
+            switch ((PacketId)id) // 패킷 ID에 따른 핸들러 호출
+            {
+                case PacketId.C_Login:
+                    C_Login loginPacket = new C_Login();
+                    loginPacket.Read(buffer);
+                    PacketHandler.C_LoginHandler(this, loginPacket);
+                    break;
+                case PacketId.C_Move:
+                    C_Move movePacket = new C_Move();
+                    movePacket.Read(buffer);
+                    PacketHandler.C_MoveHandler(this, movePacket);
+                    break;
+                case PacketId.C_PickUpItem:
+                    C_PickUpItem pickPkt = new C_PickUpItem();
+                    pickPkt.Read(buffer);
+                    PacketHandler.C_PickUpItemHandler(this, pickPkt);
+                    break;
+                case PacketId.C_Voice:
+                    C_Voice voicePacket = new C_Voice();
+                    voicePacket.Read(buffer);
+                    PacketHandler.C_VoiceHandler(this, voicePacket);
+                    break;
+            }
+        }
+        catch (Exception ex) // 패킷 파싱 중 예외 발생 시 로그 출력
+        {
+            Console.WriteLine($"Packet Parse Error: {ex.Message}");
         }
     }
 
     // 서버에서 클라이언트로 데이터를 보내는 메서드
     public void Send(ArraySegment<byte> sendBuff)
     {
-        if (Socket == null || !Socket.Connected) // 소켓 상태 체크 추가
-        return;
+        if (Socket == null || !Socket.Connected)    // 소켓 상태 체크 추가
+            return;
 
-        if (sendBuff.Array == null)
+        if (sendBuff.Array == null)                 // 버퍼 유효성 체크
             return;
 
         try
         {
-            // 실시간 음성/패킷 전송 시 발생할 수 있는 SocketException 방지
+            // 소켓을 통해 데이터를 전송
             Socket.Send(sendBuff.Array, sendBuff.Offset, sendBuff.Count, SocketFlags.None);
         }
         catch (SocketException ex)
         {
-            // Broken pipe (32) 등의 에러 발생 시 로그만 남기고 해당 세션 정리
             Console.WriteLine($"Send Error ({ex.NativeErrorCode}): {ex.Message}");
             Disconnect(); 
         }

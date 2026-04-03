@@ -9,7 +9,9 @@ public enum PacketId : ushort
     S_SpawnItem = 6,    // 아이템 생성 (서버 -> 클라)
     C_PickUpItem = 7,   // 아이템 습득 시도 (클라 -> 서버)
     S_DespawnItem = 8,  // 아이템 제거 (서버 -> 클라)
-    S_StatUpdate = 9    // 골드/경험치 수치 업데이트 (서버 -> 클라)
+    S_StatUpdate = 9,   // 골드/경험치 수치 업데이트 (서버 -> 클라)
+    C_Voice = 10,       // 음성 데이터 (클라 -> 서버)
+    S_Voice = 11        // 음성 데이터 (서버 -> 클라)
 }
 
 // 패킷 인터페이스와 각 패킷 클래스 정의
@@ -392,7 +394,77 @@ public class S_StatUpdate : IPacket
         BitConverter.TryWriteBytes(s.Slice(count), gold); count += 4;
         BitConverter.TryWriteBytes(s.Slice(count), exp); count += 4;
         BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
-        
+
         return SendBufferHelper.Close(count);
+    }
+}
+
+public class C_Voice : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.C_Voice;
+    public byte[] voiceData = new byte[0];
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
+        ushort id = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
+
+        // 헤더(4)를 제외한 나머지 모든 바이트가 음성 데이터
+        int dataSize = size - count;
+        if (dataSize > 0)
+        {
+            voiceData = new byte[dataSize];
+            Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
+        }
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ushort size = (ushort)(4 + voiceData.Length);
+        byte[] sendBuff = new byte[size];
+
+        ushort pos = 0;
+        Array.Copy(BitConverter.GetBytes(size), 0, sendBuff, pos, 2); pos += 2;
+        Array.Copy(BitConverter.GetBytes((ushort)PacketId.C_Voice), 0, sendBuff, pos, 2); pos += 2;
+        Array.Copy(voiceData, 0, sendBuff, pos, voiceData.Length);
+
+        return new ArraySegment<byte>(sendBuff);
+    }
+}
+
+public class S_Voice : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_Voice;
+    public int playerId;     
+    public byte[] voiceData = new byte[0];
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
+        ushort id = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
+        this.playerId = BitConverter.ToInt32(segment.Array, segment.Offset + count); count += 4;
+
+        int dataSize = size - count;
+        if (dataSize > 0)
+        {
+            voiceData = new byte[dataSize];
+            Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
+        }
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ushort size = (ushort)(4 + 4 + voiceData.Length); 
+        byte[] sendBuff = new byte[size];
+
+        ushort pos = 0;
+        Array.Copy(BitConverter.GetBytes(size), 0, sendBuff, pos, 2); pos += 2;
+        Array.Copy(BitConverter.GetBytes((ushort)PacketId.S_Voice), 0, sendBuff, pos, 2); pos += 2;
+        Array.Copy(BitConverter.GetBytes(playerId), 0, sendBuff, pos, 4); pos += 4;
+        Array.Copy(voiceData, 0, sendBuff, pos, voiceData.Length);
+
+        return new ArraySegment<byte>(sendBuff);
     }
 }

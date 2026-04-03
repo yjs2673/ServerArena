@@ -26,6 +26,10 @@ public class PacketHandler
 
         Console.WriteLine($"[Login] Session {session.SessionId} is now mapped to User {session.UserId}");
         Console.WriteLine($"Nickname: {session.Nickname}");
+
+        // 로그인 성공 응답: 클라이언트에게 세션 ID 할당
+        S_Login sLogin = new S_Login { playerId = session.SessionId };
+        session.Send(sLogin.Write());
     }
 
     public static void C_MoveHandler(Session session, IPacket packet)

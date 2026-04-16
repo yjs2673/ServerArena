@@ -63,6 +63,9 @@ public class AuthController : ControllerBase
         // 변경사항 저장
         await _context.SaveChangesAsync();
 
+        // Redis 랭킹 초기값 등록 (Redis가 재시작되어도 DB 기준으로 다시 채워지게 함)
+        await _redis.SortedSetAddAsync("user_ranking", newUser.Id.ToString(), newUser.Level);
+
         return Ok(new { message = "회원가입 성공!" });
     }
 
@@ -178,8 +181,22 @@ public class AuthController : ControllerBase
     {
         // Redis에서 상위 5명 가져오기 (내림차순)
         var redisResults = await _redis.SortedSetRangeByRankWithScoresAsync("user_ranking", 0, 4, Order.Descending);
-        if (redisResults.Length == 0)
-            return Ok(new List<RankData>());
+        if (redisResults.Length == 0) // Redis에 데이터가 없을 때 DB에서 fallback으로 상위 5명 조회
+        {
+            var fallbackRanking = await _context.Users
+                .OrderByDescending(u => u.Level)
+                .ThenByDescending(u => u.Exp)
+                .Take(5)
+                .Select(u => new RankData
+                {
+                    id = u.Id,
+                    nickname = u.Nickname,
+                    level = u.Level
+                })
+                .ToListAsync();
+
+            return Ok(fallbackRanking);
+        }
 
         // Redis에서 가져온 유저 ID 리스트 추출
         var userIds = redisResults.Select(r => int.Parse(r.Element.ToString())).ToList();

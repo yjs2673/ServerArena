@@ -181,7 +181,7 @@ public class AuthController : ControllerBase
     {
         // Redis에서 상위 5명 가져오기 (내림차순)
         var redisResults = await _redis.SortedSetRangeByRankWithScoresAsync("user_ranking", 0, 4, Order.Descending);
-        if (redisResults.Length == 0) // Redis에 데이터가 없을 때 DB에서 fallback으로 상위 5명 조회
+        if (redisResults.Length == 0) // Redis에 데이터가 없을 때 DB를 통해 초기화
         {
             var fallbackRanking = await _context.Users
                 .OrderByDescending(u => u.Level)

@@ -123,6 +123,11 @@ public class Session
                     attackPacket.Read(buffer);
                     PacketHandler.C_AttackHandler(this, attackPacket);
                     break;
+                case PacketId.C_Damage:
+                    C_Damage damagePacket = new C_Damage();
+                    damagePacket.Read(buffer);
+                    PacketHandler.C_DamageHandler(this, damagePacket);
+                    break;
                 case PacketId.C_Die:
                     C_Die diePacket = new C_Die();
                     diePacket.Read(buffer);

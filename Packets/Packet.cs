@@ -14,8 +14,10 @@ public enum PacketId : ushort
     S_Voice = 11,       // 음성 데이터 (서버 -> 클라)
     C_Attack = 12,      // 공격 시도 (클라 -> 서버)
     S_Attack = 13,      // 공격 시도 (서버 -> 클라)
-    C_Die = 14,         // 리타이어 알림 (클라 -> 서버)
-    S_Die = 15          // 리타이어 알림 (서버 -> 클라
+    C_Damage = 14,      // 피격 (클라 -> 서버)
+    S_Damage = 15,      // 피격 (서버 -> 클라)
+    C_Die = 16,         // 리타이어 (클라 -> 서버)
+    S_Die = 17          // 리타이어 (서버 -> 클라)
 }
 
 // 패킷 인터페이스와 각 패킷 클래스 정의
@@ -545,6 +547,60 @@ public class S_Attack : IPacket
         count += 2; // Size 예약
         BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
         BitConverter.TryWriteBytes(s.Slice(count), playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class C_Damage : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.C_Damage;
+    public int currHp; // 남은 HP
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        currHp = BitConverter.ToInt32(s.Slice(4)); // Size(2) + Protocol(2)
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2; // Size 예약
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), currHp); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class S_Damage : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_Damage;
+    public int playerId; // 피격당한 플레이어의 ID
+    public int currHp;   // 남은 HP
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        int count = 4; // Size(2) + Protocol(2)
+        playerId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        currHp = BitConverter.ToInt32(s.Slice(count)); count += 4;
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2; // Size 예약
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), currHp); count += 4;
         BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
 
         return SendBufferHelper.Close(count);

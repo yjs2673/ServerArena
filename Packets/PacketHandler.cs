@@ -142,6 +142,21 @@ public class PacketHandler
         GameRoom.Instance.Broadcast(res.Write(), session);
     }
 
+    public static void C_DamageHandler(Session session, IPacket packet)
+    {
+        C_Damage? damagePacket = packet as C_Damage;
+        if (damagePacket == null)
+            return;
+
+        S_Damage res = new S_Damage
+        {
+            playerId = session.UserId,
+            currHp = damagePacket.currHp
+        };
+        
+        GameRoom.Instance.Broadcast(res.Write(), session);
+    }
+
     public static void C_DieHandler(Session session, IPacket packet)
     {
         C_Die? diePacket = packet as C_Die;

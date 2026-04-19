@@ -127,4 +127,32 @@ public class PacketHandler
 
         GameRoom.Instance.Broadcast(sVoice.Write(), session);
     }
+
+    public static void C_AttackHandler(Session session, IPacket packet)
+    {
+        C_Attack? attackPacket = packet as C_Attack;
+        if (attackPacket == null)
+            return;
+
+        S_Attack res = new S_Attack
+        {
+            playerId = session.SessionId
+        };
+        
+        GameRoom.Instance.Broadcast(res.Write(), session);
+    }
+
+    public static void C_DieHandler(Session session, IPacket packet)
+    {
+        C_Die? diePacket = packet as C_Die;
+        if (diePacket == null)
+            return;
+
+        S_Die res = new S_Die
+        {
+            playerId = session.SessionId
+        };
+
+        GameRoom.Instance.Broadcast(res.Write(), session);
+    }
 }

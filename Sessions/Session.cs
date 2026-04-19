@@ -118,6 +118,16 @@ public class Session
                     voicePacket.Read(buffer);
                     PacketHandler.C_VoiceHandler(this, voicePacket);
                     break;
+                case PacketId.C_Attack:
+                    C_Attack attackPacket = new C_Attack();
+                    attackPacket.Read(buffer);
+                    PacketHandler.C_AttackHandler(this, attackPacket);
+                    break;
+                case PacketId.C_Die:
+                    C_Die diePacket = new C_Die();
+                    diePacket.Read(buffer);
+                    PacketHandler.C_DieHandler(this, diePacket);
+                    break;
             }
         }
         catch (Exception ex) // 패킷 파싱 중 예외 발생 시 로그 출력

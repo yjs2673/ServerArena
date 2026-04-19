@@ -30,6 +30,9 @@ public class PacketHandler
         // 로그인 성공 응답: 클라이언트에게 세션 ID 할당
         S_Login sLogin = new S_Login { playerId = session.UserId };
         session.Send(sLogin.Write());
+
+        // 로그인 확인 후 게임 룸 입장
+        GameRoom.Instance.Enter(session);
     }
 
     public static void C_MoveHandler(Session session, IPacket packet)

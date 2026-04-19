@@ -43,12 +43,8 @@ public class ParkServer
             session.SessionId = SessionManager.Instance.GenerateId();
             SessionManager.Instance.Add(session);
 
-            // 접속하자마자 본인에게 ID 패킷 전송
-            S_Login loginPkt = new S_Login { playerId = session.SessionId };
-            session.Send(loginPkt.Write());
-
-            // Park(공원) 룸에 입장시킴
-            GameRoom.Instance.Enter(session);
+            // [삭제] S_Login 전송 로직 제거 (여기서 보내면 안 됨)
+            // [삭제] GameRoom.Instance.Enter(session); 제거 (로그인 확인 후 입장)
 
             // 데이터 수신 시작
             session.Start();

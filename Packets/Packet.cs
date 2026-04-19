@@ -525,8 +525,16 @@ public class S_Attack : IPacket
 
     public void Read(ArraySegment<byte> segment)
     {
+        ushort count = 0;
         ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-        playerId = BitConverter.ToInt32(s.Slice(4));
+    
+        // 헤더 건너뛰기
+        count += 2; // Size
+        count += 2; // Protocol (ID)
+
+        // playerId 읽기 (이 위치가 정확해야 합니다)
+        this.playerId = BitConverter.ToInt32(s.Slice(count));
+        count += 4;
     }
 
     public ArraySegment<byte> Write()
@@ -572,8 +580,16 @@ public class S_Die : IPacket
 
     public void Read(ArraySegment<byte> segment)
     {
+        ushort count = 0;
         ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-        playerId = BitConverter.ToInt32(s.Slice(4));
+    
+        // 헤더 건너뛰기
+        count += 2; // Size
+        count += 2; // Protocol (ID)
+
+        // playerId 읽기 (이 위치가 정확해야 합니다)
+        this.playerId = BitConverter.ToInt32(s.Slice(count));
+        count += 4;
     }
 
     public ArraySegment<byte> Write()

@@ -168,13 +168,13 @@ public class Session
             return;
 
         // 퇴장 패킷 생성
-        S_Leave leavePkt = new S_Leave { playerId = this.SessionId };
+        S_Leave leavePkt = new S_Leave { playerId = UserId };
         ArraySegment<byte> sendBuff = leavePkt.Write();
 
         // 나를 제외한 모든 유저에게 leave 알림
         GameRoom.Instance.Broadcast(sendBuff, this);
 
-        Console.WriteLine($"Client Dicsconnected: {SessionId}");
+        Console.WriteLine($"Client Dicsconnected: {UserId}");
 
         // 매니저와 룸에서 제거
         SessionManager.Instance.Remove(this);

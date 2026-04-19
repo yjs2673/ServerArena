@@ -134,10 +134,7 @@ public class PacketHandler
         if (attackPacket == null)
             return;
 
-        S_Attack res = new S_Attack
-        {
-            playerId = session.UserId
-        };
+        S_Attack res = new S_Attack { playerId = session.UserId};
         
         GameRoom.Instance.Broadcast(res.Write(), session);
     }
@@ -148,10 +145,7 @@ public class PacketHandler
         if (diePacket == null)
             return;
 
-        S_Die res = new S_Die
-        {
-            playerId = session.UserId
-        };
+        S_Die res = new S_Die { playerId = session.UserId };
 
         GameRoom.Instance.Broadcast(res.Write(), session);
     }

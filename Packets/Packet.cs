@@ -412,12 +412,12 @@ public class C_Voice : IPacket
     public void Read(ArraySegment<byte> segment)
     {
         ushort count = 0;
-        ushort size = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
-        ushort id = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
+        ushort size = BitConverter.ToUInt16(segment.Array?? Array.Empty<byte>(), segment.Offset + count); count += 2;
+        ushort id = BitConverter.ToUInt16(segment.Array?? Array.Empty<byte>(), segment.Offset + count); count += 2;
 
         // 헤더(4)를 제외한 나머지 모든 바이트가 음성 데이터
         int dataSize = size - count;
-        if (dataSize > 0 && segment.Offset + count + dataSize <= segment.Array.Length)
+        if (dataSize > 0 && segment.Offset + count + dataSize <= segment.Array?.Length)
         {
             voiceData = new byte[dataSize];
             Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
@@ -428,13 +428,13 @@ public class C_Voice : IPacket
 
     public ArraySegment<byte> Write()
     {
-        ushort size = (ushort)(4 + voiceData.Length);
+        ushort size = (ushort)(4 + (voiceData?.Length ?? 0));
         byte[] sendBuff = new byte[size];
 
         ushort pos = 0;
         Array.Copy(BitConverter.GetBytes(size), 0, sendBuff, pos, 2); pos += 2;
         Array.Copy(BitConverter.GetBytes((ushort)PacketId.C_Voice), 0, sendBuff, pos, 2); pos += 2;
-        Array.Copy(voiceData, 0, sendBuff, pos, voiceData.Length);
+        Array.Copy(voiceData ?? Array.Empty<byte>(), 0, sendBuff, pos, voiceData?.Length ?? 0);
 
         return new ArraySegment<byte>(sendBuff);
     }
@@ -462,7 +462,7 @@ public class S_Voice : IPacket
         count += nameLen;
 
         int dataSize = size - count;
-        if (dataSize > 0 && segment.Offset + count + dataSize <= segment.Array.Length)
+        if (dataSize > 0 && segment.Offset + count + dataSize <= segment.Array?.Length)
         {
             voiceData = new byte[dataSize];
             Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
@@ -472,7 +472,7 @@ public class S_Voice : IPacket
     public ArraySegment<byte> Write()
     {
         byte[] nameBytes = System.Text.Encoding.UTF8.GetBytes(this.playerNickname ?? "");
-        ushort size = (ushort)(4 + 4 + 2 + nameBytes.Length + voiceData.Length);
+        ushort size = (ushort)(4 + 4 + 2 + nameBytes.Length + voiceData?.Length ?? 0);
 
         ArraySegment<byte> segment = SendBufferHelper.Open(size + 100);
         ushort count = 0;
@@ -488,7 +488,7 @@ public class S_Voice : IPacket
         nameBytes.CopyTo(s.Slice(count)); count += (ushort)nameBytes.Length;
 
         // Voice Data 기록
-        if (voiceData.Length > 0)
+        if (voiceData?.Length > 0)
         {
             voiceData.CopyTo(s.Slice(count));
             count += (ushort)voiceData.Length;

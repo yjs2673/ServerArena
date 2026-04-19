@@ -43,8 +43,8 @@ public class ParkServer
             session.SessionId = SessionManager.Instance.GenerateId();
             SessionManager.Instance.Add(session);
 
-            // [삭제] S_Login 전송 로직 제거 (여기서 보내면 안 됨)
-            // [삭제] GameRoom.Instance.Enter(session); 제거 (로그인 확인 후 입장)
+            // S_Login 전송 로직 제거 (중복 방지 위해 로그인 핸들러에서 처리)
+            // 세션 공원 입장 제거 (로그인 확인 후 입장)
 
             // 데이터 수신 시작
             session.Start();

@@ -28,7 +28,7 @@ public class PacketHandler
         Console.WriteLine($"Nickname: {session.Nickname}");
 
         // 로그인 성공 응답: 클라이언트에게 세션 ID 할당
-        S_Login sLogin = new S_Login { playerId = session.SessionId };
+        S_Login sLogin = new S_Login { playerId = session.UserId };
         session.Send(sLogin.Write());
     }
 
@@ -43,7 +43,7 @@ public class PacketHandler
         // S_Move 패킷 생성 (브로드캐스트용)
         S_Move res = new S_Move
         {
-            playerId = session.SessionId,
+            playerId = session.UserId,
             posX = movePacket.posX,
             posY = movePacket.posY,
             posZ = movePacket.posZ,
@@ -136,7 +136,7 @@ public class PacketHandler
 
         S_Attack res = new S_Attack
         {
-            playerId = session.SessionId
+            playerId = session.UserId
         };
         
         GameRoom.Instance.Broadcast(res.Write(), session);
@@ -150,7 +150,7 @@ public class PacketHandler
 
         S_Die res = new S_Die
         {
-            playerId = session.SessionId
+            playerId = session.UserId
         };
 
         GameRoom.Instance.Broadcast(res.Write(), session);

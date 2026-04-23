@@ -2,7 +2,7 @@ using System;
 using MyGameServer.Models;
 
 // 공원 드랍 아이템 정보 클래스
-public class ItemInfo
+public class DropItemInfo
 {
     public int ItemDbId;    // 아이템 개체의 고유 ID
     public short ItemType;  // 0: Coin, 1: Exp
@@ -16,7 +16,7 @@ public class ItemManager
     public static ItemManager Instance => _instance;    // 싱글톤 인스턴스 접근자
 
     int _itemCounter = 0; // 아이템 고유 ID 생성용 카운터
-    Dictionary<int, ItemInfo> _items = new Dictionary<int, ItemInfo>(); // 현재 존재하는 아이템들 (Key: ItemDbId)
+    Dictionary<int, DropItemInfo> _items = new Dictionary<int, DropItemInfo>(); // 현재 존재하는 아이템들 (Key: ItemDbId)
     object _lock = new object();
 
     // 5초마다 랜덤 위치에 아이템 생성
@@ -34,7 +34,7 @@ public class ItemManager
     {
         lock (_lock)
         {
-            ItemInfo item = new ItemInfo
+            DropItemInfo item = new DropItemInfo
             {
                 ItemDbId = ++_itemCounter,
                 ItemType = (short)new Random().Next(0, 2), // 0: Coin, 1: Exp
@@ -58,11 +58,11 @@ public class ItemManager
     }
 
     // 획득 판정
-    public ItemInfo? PickUpItem(int itemDbId)
+    public DropItemInfo? PickUpItem(int itemDbId)
     {
         lock (_lock)
         {
-            if (_items.Remove(itemDbId, out ItemInfo? item))
+            if (_items.Remove(itemDbId, out DropItemInfo? item))
                 return item; // 성공적으로 획득
                 
             return null; // 이미 누가 획득

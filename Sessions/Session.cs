@@ -128,6 +128,11 @@ public class Session
                     damagePacket.Read(buffer);
                     PacketHandler.C_DamageHandler(this, damagePacket);
                     break;
+                case PacketId.C_Heal:
+                    C_Heal healPacket = new C_Heal();
+                    healPacket.Read(buffer);
+                    PacketHandler.C_HealHandler(this, healPacket);
+                    break;
                 case PacketId.C_Die:
                     C_Die diePacket = new C_Die();
                     diePacket.Read(buffer);

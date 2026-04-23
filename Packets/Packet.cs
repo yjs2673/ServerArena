@@ -13,8 +13,10 @@ public enum PacketId : ushort
     S_StatUpdate = 10,  // 골드/경험치 수치 업데이트 (서버 -> 클라)
     C_Voice = 11,       // 음성 데이터 (클라 -> 서버)
     S_Voice = 12,       // 음성 데이터 (서버 -> 클라)
-    C_Attack = 13,      // 공격 시도 (클라 -> 서버)
-    S_Attack = 14,      // 공격 시도 (서버 -> 클라)
+    C_SwapWeapon = 13,  // 무기 교체  (클라 -> 서버)
+    S_SwapWeapon = 14,  // 무기 교체  (서버 -> 클라)
+    C_Attack = 15,      // 공격 시도 (클라 -> 서버)
+    S_Attack = 16,      // 공격 시도 (서버 -> 클라)
     C_Damage = 17,      // 피격 (클라 -> 서버)
     S_Damage = 18,      // 피격 (서버 -> 클라)
     C_Heal = 19,        // 회복 (클라 -> 서버)
@@ -557,6 +559,63 @@ public class S_Voice : IPacket
             count += (ushort)voiceData.Length;
         }
 
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class C_SwapWeapon : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.C_SwapWeapon;
+    public int weaponIdx; // 바꾸려는 무기 번호 (0: 망치, 1: 총)
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 4; // Size(2) + Proto(2)
+        if (count + 4 > s.Length) return;
+        this.weaponIdx = BitConverter.ToInt32(s.Slice(count));
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(12);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), weaponIdx); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count);
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class S_SwapWeapon : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_SwapWeapon;
+    public int playerId;
+    public int weaponIdx;
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 4;
+        if (count + 8 > s.Length) return;
+        this.playerId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        this.weaponIdx = BitConverter.ToInt32(s.Slice(count)); count += 4;
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(16);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), weaponIdx); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count);
         return SendBufferHelper.Close(count);
     }
 }

@@ -118,6 +118,11 @@ public class Session
                     voicePacket.Read(buffer);
                     PacketHandler.C_VoiceHandler(this, voicePacket);
                     break;
+                case PacketId.C_SwapWeapon:
+                    C_SwapWeapon swapPacket = new C_SwapWeapon();
+                    swapPacket.Read(buffer);
+                    PacketHandler.C_SwapWeaponHandler(this, swapPacket);
+                    break;
                 case PacketId.C_Attack:
                     C_Attack attackPacket = new C_Attack();
                     attackPacket.Read(buffer);

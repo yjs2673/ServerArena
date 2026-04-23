@@ -149,6 +149,21 @@ public class PacketHandler
 
         GameRoom.Instance.Broadcast(sVoice.Write(), session);
     }
+    
+    public static void C_SwapWeaponHandler(Session session, IPacket packet)
+    {
+        C_SwapWeapon? swapPacket = packet as C_SwapWeapon;
+        if (swapPacket == null)
+            return;
+
+        S_SwapWeapon res = new S_SwapWeapon
+        {
+            playerId = session.UserId,
+            weaponIdx = swapPacket.weaponIdx
+        };
+        
+        GameRoom.Instance.Broadcast(res.Write(), session);
+    }
 
     public static void C_AttackHandler(Session session, IPacket packet)
     {
@@ -156,8 +171,8 @@ public class PacketHandler
         if (attackPacket == null)
             return;
 
-        S_Attack res = new S_Attack { playerId = session.UserId};
-        
+        S_Attack res = new S_Attack { playerId = session.UserId };
+
         GameRoom.Instance.Broadcast(res.Write(), session);
     }
 

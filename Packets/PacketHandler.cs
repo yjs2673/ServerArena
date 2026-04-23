@@ -179,7 +179,7 @@ public class PacketHandler
             inventoryItem.Count -= 1;
             
             // 유저 HP 회복
-            int newHp = Math.Max(healPacket.currHp + itemInfo.AbilityValue, 100);
+            int newHp = Math.Min(healPacket.currHp + itemInfo.AbilityValue, 100);
             
             db.SaveChanges();
 

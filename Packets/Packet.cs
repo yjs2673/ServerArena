@@ -3,23 +3,30 @@ public enum PacketId : ushort
 {
     C_Login = 1,        // 유저 ID
     S_Login = 2,
-    C_Move = 3,
-    S_Move = 4,
-    S_Leave = 5,
-    S_SpawnItem = 6,    // 아이템 생성 (서버 -> 클라)
-    C_PickUpItem = 7,   // 아이템 습득 시도 (클라 -> 서버)
-    S_DespawnItem = 8,  // 아이템 제거 (서버 -> 클라)
-    S_StatUpdate = 9,   // 골드/경험치 수치 업데이트 (서버 -> 클라)
-    C_Voice = 10,       // 음성 데이터 (클라 -> 서버)
-    S_Voice = 11,       // 음성 데이터 (서버 -> 클라)
-    C_Attack = 12,      // 공격 시도 (클라 -> 서버)
-    S_Attack = 13,      // 공격 시도 (서버 -> 클라)
-    C_Damage = 16,      // 피격 (클라 -> 서버)
-    S_Damage = 17,      // 피격 (서버 -> 클라)
-    C_Heal = 18,        // 회복 (클라 -> 서버)
-    S_Heal = 19,        // 회복 (서버 -> 클라)
-    C_Die = 20,         // 리타이어 (클라 -> 서버)
-    S_Die = 21          // 리타이어 (서버 -> 클라)
+    S_ItemList = 3,     // 유저 아이템 목록
+    C_Move = 4,
+    S_Move = 5,
+    S_Leave = 6,
+    S_SpawnItem = 7,    // 아이템 생성 (서버 -> 클라)
+    C_PickUpItem = 8,   // 아이템 습득 시도 (클라 -> 서버)
+    S_DespawnItem = 9,  // 아이템 제거 (서버 -> 클라)
+    S_StatUpdate = 10,  // 골드/경험치 수치 업데이트 (서버 -> 클라)
+    C_Voice = 11,       // 음성 데이터 (클라 -> 서버)
+    S_Voice = 12,       // 음성 데이터 (서버 -> 클라)
+    C_Attack = 13,      // 공격 시도 (클라 -> 서버)
+    S_Attack = 14,      // 공격 시도 (서버 -> 클라)
+    C_Damage = 17,      // 피격 (클라 -> 서버)
+    S_Damage = 18,      // 피격 (서버 -> 클라)
+    C_Heal = 19,        // 회복 (클라 -> 서버)
+    S_Heal = 20,        // 회복 (서버 -> 클라)
+    C_Die = 21,         // 리타이어 (클라 -> 서버)
+    S_Die = 22          // 리타이어 (서버 -> 클라)
+}
+
+public class ItemInfo
+{
+    public int itemId;
+    public int count;
 }
 
 // 패킷 인터페이스와 각 패킷 클래스 정의
@@ -102,6 +109,60 @@ public class S_Login : IPacket
         BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Login); count += 2;
         BitConverter.TryWriteBytes(s.Slice(count), this.playerId); count += 4;
         BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class S_ItemList : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_ItemList;
+    public List<ItemInfo> items = new List<ItemInfo>();
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        ushort size = BitConverter.ToUInt16(s.Slice(count)); count += 2;
+        ushort protocol = BitConverter.ToUInt16(s.Slice(count)); count += 2;
+
+        if (count + 2 > s.Length) return;
+        ushort listCount = BitConverter.ToUInt16(s.Slice(count)); count += 2;
+
+        // 아이템 개수만큼 count증가
+        for (int i = 0; i < listCount; i++)
+        {
+            if (count + 8 > s.Length) break;
+
+            ItemInfo info = new ItemInfo();
+            info.itemId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+            info.count = BitConverter.ToInt32(s.Slice(count)); count += 4;
+            items.Add(info);
+        }
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += 2; // Size 예약
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+
+        // 리스트 개수
+        BitConverter.TryWriteBytes(s.Slice(count), (ushort)items.Count); count += 2;
+
+        // 개별 아이템 정보
+        foreach (ItemInfo info in items)
+        {
+            BitConverter.TryWriteBytes(s.Slice(count), info.itemId); count += 4;
+            BitConverter.TryWriteBytes(s.Slice(count), info.count); count += 4;
+        }
+
+        // 최종 Size
+        BitConverter.TryWriteBytes(s.Slice(0), count);
 
         return SendBufferHelper.Close(count);
     }

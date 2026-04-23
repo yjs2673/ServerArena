@@ -31,6 +31,25 @@ public class PacketHandler
         S_Login sLogin = new S_Login { playerId = session.UserId };
         session.Send(sLogin.Write());
 
+        // 유저의 전체 아이템 목록을 한 번에 조회
+        using (AppDbContext db = new AppDbContext())
+        {
+            var userItems = db.UserItems
+                .Where(i => i.UserId == session.UserId)
+                .ToList();
+
+            S_ItemList itemListPacket = new S_ItemList();
+            foreach (var item in userItems)
+            {
+                itemListPacket.items.Add(new ItemInfo
+                {
+                    itemId = item.ItemId,
+                    count = item.Count
+                });
+            }
+            session.Send(itemListPacket.Write());
+        }
+
         // 로그인 확인 후 게임 룸 입장
         GameRoom.Instance.Enter(session);
     }
@@ -69,7 +88,7 @@ public class PacketHandler
             return;
 
         // 아이템 매니저 검증
-        ItemInfo? info = ItemManager.Instance.PickUpItem(pickPkt.itemDbId);
+        DropItemInfo? info = ItemManager.Instance.PickUpItem(pickPkt.itemDbId);
         if (info == null) // 이미 누가 먹었거나 없는 아이템
             return;
 

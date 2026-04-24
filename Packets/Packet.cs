@@ -3,26 +3,28 @@ public enum PacketId : ushort
 {
     C_Login = 1,        // 유저 ID
     S_Login = 2,
-    S_ItemList = 3,     // 유저 아이템 목록
-    C_Move = 4,
-    S_Move = 5,
-    S_Leave = 6,
-    S_SpawnItem = 7,    // 아이템 생성 (서버 -> 클라)
-    C_PickUpItem = 8,   // 아이템 습득 시도 (클라 -> 서버)
-    S_DespawnItem = 9,  // 아이템 제거 (서버 -> 클라)
-    S_StatUpdate = 10,  // 골드/경험치 수치 업데이트 (서버 -> 클라)
-    C_Voice = 11,       // 음성 데이터 (클라 -> 서버)
-    S_Voice = 12,       // 음성 데이터 (서버 -> 클라)
-    C_SwapWeapon = 13,  // 무기 교체  (클라 -> 서버)
-    S_SwapWeapon = 14,  // 무기 교체  (서버 -> 클라)
-    C_Attack = 15,      // 공격 시도 (클라 -> 서버)
-    S_Attack = 16,      // 공격 시도 (서버 -> 클라)
-    C_Damage = 17,      // 피격 (클라 -> 서버)
-    S_Damage = 18,      // 피격 (서버 -> 클라)
-    C_Heal = 19,        // 회복 (클라 -> 서버)
-    S_Heal = 20,        // 회복 (서버 -> 클라)
-    C_Die = 21,         // 리타이어 (클라 -> 서버)
-    S_Die = 22          // 리타이어 (서버 -> 클라)
+    S_Spawn = 3,
+    // TODO: 유저 접속 시 기존 유저들 정보 서버로부터 받아서 클라이언트에서 소환 -> 무기 정보, 위치 정보 등 받기
+    S_ItemList = 4,     // 유저 아이템 목록
+    C_Move = 5,
+    S_Move = 6,
+    S_Leave = 7,
+    S_SpawnItem = 8,    // 아이템 생성 (서버 -> 클라)
+    C_PickUpItem = 9,   // 아이템 습득 시도 (클라 -> 서버)
+    S_DespawnItem = 10, // 아이템 제거 (서버 -> 클라)
+    S_StatUpdate = 11,  // 골드/경험치 수치 업데이트 (서버 -> 클라)
+    C_Voice = 12,       // 음성 데이터 (클라 -> 서버)
+    S_Voice = 13,       // 음성 데이터 (서버 -> 클라)
+    C_SwapWeapon = 14,  // 무기 교체  (클라 -> 서버)
+    S_SwapWeapon = 15,  // 무기 교체  (서버 -> 클라)
+    C_Attack = 16,      // 공격 시도 (클라 -> 서버)
+    S_Attack = 17,      // 공격 시도 (서버 -> 클라)
+    C_Damage = 18,      // 피격 (클라 -> 서버)
+    S_Damage = 19,      // 피격 (서버 -> 클라)
+    C_Heal = 20,        // 회복 (클라 -> 서버)
+    S_Heal = 21,        // 회복 (서버 -> 클라)
+    C_Die = 22,         // 리타이어 (클라 -> 서버)
+    S_Die = 23          // 리타이어 (서버 -> 클라)
 }
 
 public class ItemInfo
@@ -116,6 +118,35 @@ public class S_Login : IPacket
     }
 }
 
+public class S_Spawn : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_Spawn;
+    public int playerId;
+    public int weaponIdx;
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        int count = 4; // Size(2) + Protocol(2)
+        playerId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        weaponIdx = BitConverter.ToInt32(s.Slice(count)); count += 4;
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2; // Size 예약
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), weaponIdx); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
 public class S_ItemList : IPacket
 {
     public ushort Protocol => (ushort)PacketId.S_ItemList;
@@ -183,6 +214,8 @@ public class C_Move : IPacket
     public bool isDodge;
     // --- 캐릭터 색 ---
     public int colorIndex;
+    // --- 장착 무기 ---
+    public int weaponIndex;
 
     // 역직렬화: 바이트 배열에서 데이터를 뽑아내 변수에 저장 (서버가 받음)
     public void Read(ArraySegment<byte> segment)
@@ -203,6 +236,7 @@ public class C_Move : IPacket
         this.isJump = s[count] != 0; count += 1;
         this.isDodge = s[count] != 0; count += 1;
         this.colorIndex = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        this.weaponIndex = BitConverter.ToInt32(s.Slice(count)); count += 4;
     }
 
     // 직렬화: 변수의 데이터를 바이트 배열로 변환 (클라이언트가 보냄)
@@ -238,6 +272,7 @@ public class C_Move : IPacket
 
         // Ints
         BitConverter.TryWriteBytes(s.Slice(count), this.colorIndex); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), this.weaponIndex); count += 4;
 
         // 전체 패킷 Size 기록
         success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
@@ -263,6 +298,8 @@ public class S_Move : IPacket
     public bool isDodge;
     // --- 캐릭터 색 ---
     public int colorIndex;
+    // --- 장착 무기 ---
+    public int weaponIndex;
 
     // 역직렬화: 바이트 배열에서 데이터를 뽑아내 변수에 저장 (서버가 받음)
     public void Read(ArraySegment<byte> segment)
@@ -284,6 +321,7 @@ public class S_Move : IPacket
         this.isJump = s[count] != 0; count += 1;
         this.isDodge = s[count] != 0; count += 1;
         this.colorIndex = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        this.weaponIndex = BitConverter.ToInt32(s.Slice(count)); count += 4;
     }
 
     // 직렬화: 변수의 데이터를 바이트 배열로 변환 (클라이언트가 보냄)
@@ -320,7 +358,7 @@ public class S_Move : IPacket
 
         // Ints
         BitConverter.TryWriteBytes(s.Slice(count), this.colorIndex); count += 4;
-
+        BitConverter.TryWriteBytes(s.Slice(count), this.weaponIndex); count += 4;
         // 전체 패킷 Size 기록
         success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
 

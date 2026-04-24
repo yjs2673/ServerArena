@@ -9,6 +9,7 @@ public class Session
     public int SessionId { get; set; }      // 고유 세션 ID (접속할 때 매니저에서 생성하여 할당)
     public int UserId { get; set; }         // DB의 유저 ID (로그인 패킷 처리 시 할당)
     public string? Nickname { get; set; }   // 유저 닉네임 (로그인 패킷 처리 시 DB에서 조회하여 할당)
+    public int WeaponId { get; set; } = -1; // 현재 장착한 무기 ID (-1:None, 0: Hammer, 1: Rifle)
     public Socket? Socket { get; set; }     // 클라이언트와의 소켓 연결
     private byte[] _recvBuffer = new byte[1024 * 64]; // 수신 버퍼
 
@@ -162,8 +163,12 @@ public class Session
 
         try
         {
+            // 버퍼를 복사하여 전송 (SendBufferHelper의 재사용 버퍼 문제 해결)
+            byte[] buffer = new byte[sendBuff.Count];
+            Array.Copy(sendBuff.Array, sendBuff.Offset, buffer, 0, sendBuff.Count);
+            
             // 소켓을 통해 데이터를 전송
-            Socket.Send(sendBuff.Array, sendBuff.Offset, sendBuff.Count, SocketFlags.None);
+            Socket.Send(buffer, 0, buffer.Length, SocketFlags.None);
         }
         catch (SocketException ex)
         {

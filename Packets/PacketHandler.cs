@@ -52,6 +52,13 @@ public class PacketHandler
 
         // 로그인 확인 후 게임 룸 입장
         GameRoom.Instance.Enter(session);
+        
+        // 내가 들어왔음을 알림 (나 제외 브로드캐스트)
+        /* S_Spawn mySpawn = new S_Spawn {
+            playerId = session.UserId,
+            weaponIdx = -1
+        };
+        GameRoom.Instance.Broadcast(mySpawn.Write(), session); */
     }
 
     public static void C_MoveHandler(Session session, IPacket packet)
@@ -74,7 +81,8 @@ public class PacketHandler
             isWalk = movePacket.isWalk,
             isJump = movePacket.isJump,
             isDodge = movePacket.isDodge,
-            colorIndex = movePacket.colorIndex
+            colorIndex = movePacket.colorIndex,
+            weaponIndex = movePacket.weaponIndex
         };
 
         // 자신 제외 모든 클라이언트에게 움직임 브로드캐스트
@@ -155,6 +163,8 @@ public class PacketHandler
         C_SwapWeapon? swapPacket = packet as C_SwapWeapon;
         if (swapPacket == null)
             return;
+
+        session.WeaponId = swapPacket.weaponIdx; // 세션에 현재 장착한 무기 정보 저장
 
         S_SwapWeapon res = new S_SwapWeapon
         {

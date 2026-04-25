@@ -181,9 +181,38 @@ public class PacketHandler
         if (attackPacket == null)
             return;
 
-        S_Attack res = new S_Attack { playerId = session.UserId };
+        using (AppDbContext db = new AppDbContext())
+        {
+            // 유저 인벤토리에서 아이템 조회
+            var inventoryItem = db.UserItems
+                .FirstOrDefault(i => i.UserId == session.UserId && i.ItemId == attackPacket.itemId);
 
-        GameRoom.Instance.Broadcast(res.Write(), session);
+            if (attackPacket.attackType == 1) // 원거리 공격인 경우에만 아이템 소모 검증
+            {
+                if (inventoryItem == null || inventoryItem.Count <= 0) return;
+                
+
+                // 아이템 정보 조회 (AbilityValue)
+                var itemInfo = db.Items.Find(attackPacket.itemId);
+                if (itemInfo == null) return;
+
+                // DB 반영: 개수 차감
+                inventoryItem.Count -= 1;
+
+                db.SaveChanges();
+            }
+
+            S_Attack res = new S_Attack
+            {
+                playerId = session.UserId,
+                attackType = attackPacket.attackType,
+                itemId = attackPacket.itemId,
+                itemCount = inventoryItem?.Count ?? 0
+            };
+
+            // 자신 포함 전체 브로드캐스트: 무결성 보장
+            GameRoom.Instance.Broadcast(res.Write(), null);
+        }
     }
 
     public static void C_DamageHandler(Session session, IPacket packet)

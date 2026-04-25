@@ -661,10 +661,18 @@ public class S_SwapWeapon : IPacket
 public class C_Attack : IPacket
 {
     public ushort Protocol => (ushort)PacketId.C_Attack;
+    public int attackType; // 공격 종류 (0: 근접, 1: 원거리)
+    public int itemId;     // 원거리 공격 시 사용한 아이템의 DB ID
 
     public void Read(ArraySegment<byte> segment)
     {
+        int count = 0;
         ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+        this.attackType = BitConverter.ToInt32(s.Slice(count)); count += sizeof(int);
+        this.itemId = BitConverter.ToInt32(s.Slice(count)); count += sizeof(int);
     }
 
     public ArraySegment<byte> Write()
@@ -674,6 +682,8 @@ public class C_Attack : IPacket
         Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
         count += 2; // Size 예약
         BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), attackType); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), itemId); count += 4;
         BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
 
         return SendBufferHelper.Close(count);
@@ -683,18 +693,24 @@ public class C_Attack : IPacket
 public class S_Attack : IPacket
 {
     public ushort Protocol => (ushort)PacketId.S_Attack;
-    public int playerId; // 공격 시도하는 대상 플레이어의 ID
+    public int playerId;    // 공격 시도하는 대상 플레이어의 ID
+    public int attackType;  // 공격 종류 (0: 근접, 1: 원거리)
+    public int itemId;      // 원거리 공격 시 사용한 아이템의 DB ID
+    public int itemCount;   // 원거리 공격 시 남은 아이템 개수
 
     public void Read(ArraySegment<byte> segment)
     {
         ushort count = 0;
         ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-    
+
         // 헤더 건너뛰기
         count += 2; // Size
         count += 2; // Protocol (ID)
 
         this.playerId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        this.attackType = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        this.itemId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+        this.itemCount = BitConverter.ToInt32(s.Slice(count)); count += 4;
     }
 
     public ArraySegment<byte> Write()
@@ -705,6 +721,9 @@ public class S_Attack : IPacket
         count += 2; // Size 예약
         BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
         BitConverter.TryWriteBytes(s.Slice(count), playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), attackType); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), itemId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(count), itemCount); count += 4;
         BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
 
         return SendBufferHelper.Close(count);

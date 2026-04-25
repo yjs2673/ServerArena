@@ -144,6 +144,8 @@ Unity Game Server Project by .NET
 
 ## 🔗 데이터 흐름 (Workflow)
 
+<img width="1491" height="976" alt="0 1  플로우차트" src="https://github.com/user-attachments/assets/b01d4f09-193c-4ecd-b1a1-7369bbddb268" />
+
 1. **클라이언트 (Unity):** 유저가 입력한 데이터를 JSON 형식으로 `UnityWebRequest`로 서버에 전송
 
 2. **서버 (ASP.NET Core):** `Controller`가 요청을 받아 `DTO`에 저장하고 DB(MySQL)와 통신

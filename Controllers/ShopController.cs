@@ -74,8 +74,12 @@ public class ShopController : ControllerBase
             // 골드 차감
             user.Gold -= totalCost;
 
+            // 총알 10묶음 판매
+            if (dto.ItemId == 1)
+                dto.Count *= 10;
+
             // 인벤토리 업데이트
-            var userItem = await _context.UserItems
+                var userItem = await _context.UserItems
                 .FirstOrDefaultAsync(ui => ui.UserId == dto.UserId && ui.ItemId == dto.ItemId);
 
             if (userItem != null)   // 이미 아이템이 존재하면 수량 증가

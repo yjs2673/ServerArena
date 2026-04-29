@@ -19,12 +19,12 @@ public class ItemManager
     Dictionary<int, DropItemInfo> _items = new Dictionary<int, DropItemInfo>(); // 현재 존재하는 아이템들 (Key: ItemDbId)
     object _lock = new object();
 
-    // 5초마다 랜덤 위치에 아이템 생성
+    // 10초마다 랜덤 위치에 아이템 생성
     public async Task StartSpawnLoop()
     {
         while (true)
         {
-            await Task.Delay(100000); // 100초 대기
+            await Task.Delay(10000); // 10초 대기
             SpawnRandomItem();
         }
     }

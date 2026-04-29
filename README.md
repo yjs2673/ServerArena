@@ -1,6 +1,8 @@
 # UnityGameServer
 Unity Game Server Project by .NET
 
+[시연 영상](https://www.youtube.com/watch?v=16Unk36lOfw&feature=youtu.be)
+
 [유니티 제작 과정](https://yjs2673.notion.site/3-18-328bb61a510380f1b644e0392037e75d)
 
 </br>
